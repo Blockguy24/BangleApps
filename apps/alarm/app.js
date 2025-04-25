@@ -87,11 +87,10 @@ function showMainMenu(scroll, group, scrollback) {
   };
   const getGroups = settings.showGroup && !group;
   const groups = getGroups ? {} : undefined;
-  var showAlarm;
   const getIcon = (e)=>{return e.on ? (e.timer ? iconTimerOn : iconAlarmOn) : (e.timer ? iconTimerOff : iconAlarmOff);};
 
   alarms.forEach((e, index) => {
-    showAlarm = !settings.showGroup || (group ? e.group === group : !e.group);
+    const showAlarm = !settings.showGroup || (group ? e.group === group : !e.group);
     if(showAlarm) {
       const label = trimLabel(getLabel(e),40);
       menu[label] = {
@@ -99,6 +98,13 @@ function showMainMenu(scroll, group, scrollback) {
         onchange: (v, touch) => {
           if (touch && (2==touch.type || 145<touch.x)) { // Long touch or touched icon.
             e.on = v;
+
+            if (e.timer) {
+              prepareTimerForSave(e, index, null, true);
+            } else {
+              prepareAlarmForSave(e, index, null, null, true);
+            }
+
             saveAndReload();
           } else {
             setTimeout(e.timer ? showEditTimerMenu : showEditAlarmMenu, 10, e, index, undefined, scroller?scroller.scroll:undefined, group);
@@ -315,7 +321,7 @@ function showEditAlarmMenu(selectedAlarm, alarmIndex, withDate, scroll, group) {
 }
 
 function prepareAlarmForSave(alarm, alarmIndex, time, date, temp) {
-  alarm.t = require("time_utils").encodeTime(time);
+  if(time != null) alarm.t = require("time_utils").encodeTime(time);
   alarm.last = alarm.t < require("time_utils").getCurrentTimeMillis() ? new Date().getDate() : 0;
   if(date) alarm.date = date.toLocalISOString().slice(0,10);
 
@@ -539,8 +545,10 @@ function showEditTimerMenu(selectedTimer, timerIndex) {
 }
 
 function prepareTimerForSave(timer, timerIndex, time, temp) {
-  timer.timer = require("time_utils").encodeTime(time);
-  timer.t = (require("time_utils").getCurrentTimeMillis() + timer.timer) % 86400000;
+  if (time != null) {
+    timer.timer = require("time_utils").encodeTime(time);
+    timer.t = (require("time_utils").getCurrentTimeMillis() + timer.timer) % 86400000;
+  }
   timer.last = 0;
 
   if (!temp) {
